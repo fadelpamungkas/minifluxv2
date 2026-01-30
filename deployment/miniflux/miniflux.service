@@ -1,0 +1,106 @@
+# Miniflux Systemd Service File
+# 
+# Installation:
+#   1. Copy this file to /etc/systemd/system/miniflux.service
+#   2. Copy miniflux.conf to /etc/miniflux.conf
+#   3. Run: sudo systemctl daemon-reload
+#   4. Run: sudo systemctl enable miniflux
+#   5. Run: sudo systemctl start miniflux
+#
+# Changing the systemd config can be done like this:
+#   1. Edit the config file: systemctl edit --full miniflux
+#   2. Restart the process: systemctl restart miniflux
+# All your changes can be reverted with `systemctl revert miniflux.service`.
+# See https://wiki.archlinux.org/index.php/Systemd#Editing_provided_units.
+# Also see https://www.freedesktop.org/software/systemd/man/systemd.service.html
+# for available configuration options in this file.
+
+[Unit]
+Description=Miniflux - Minimalist Feed Reader
+Documentation=man:miniflux(1) https://miniflux.app/docs/index.html
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+# Path to Miniflux binary
+# Update this path if you installed Miniflux to a different location
+ExecStart=/usr/local/bin/miniflux
+
+# Run as dedicated user (created by setup-miniflux-user.sh)
+User=miniflux
+Group=miniflux
+
+# Load environment variables from configuration file
+EnvironmentFile=/etc/miniflux.conf
+
+# Miniflux uses sd-notify protocol to notify about its readiness
+Type=notify
+
+# Enable watchdog - systemd will kill the service if it doesn't respond
+WatchdogSec=60s
+WatchdogSignal=SIGKILL
+
+# Automatically restart Miniflux if it crashes
+Restart=always
+RestartSec=5
+
+# Allocate a directory at /run/miniflux for Unix sockets
+RuntimeDirectory=miniflux
+RuntimeDirectoryMode=0750
+
+# ============================================
+# Security Hardening Options
+# ============================================
+# These options restrict the service's capabilities for security
+
+# Ensure the service can never gain new privileges
+NoNewPrivileges=yes
+
+# Allocate a separate /tmp directory
+PrivateTmp=yes
+
+# Make the system tree read-only (except /run, /tmp, /var/tmp)
+ProtectSystem=strict
+
+# Make home directories inaccessible
+ProtectHome=yes
+
+# Make device nodes except for /dev/null, /dev/zero, /dev/full,
+# /dev/random and /dev/urandom inaccessible
+PrivateDevices=yes
+
+# Prohibit access to any kind of namespacing
+RestrictNamespaces=yes
+
+# Make cgroup file system hierarchy inaccessible
+ProtectControlGroups=yes
+
+# Deny kernel module loading
+ProtectKernelModules=yes
+
+# Make kernel variables (e.g. /proc/sys) read-only
+ProtectKernelTunables=yes
+
+# Deny hostname changing
+ProtectHostname=yes
+
+# Deny realtime scheduling
+RestrictRealtime=yes
+
+# Deny access to the kernel log ring buffer
+ProtectKernelLogs=yes
+
+# Deny setting the hardware or system clock
+ProtectClock=yes
+
+# Filter dangerous system calls
+SystemCallArchitectures=native
+
+# Deny kernel execution domain changing
+LockPersonality=yes
+
+# Deny memory mappings that are writable and executable
+MemoryDenyWriteExecute=yes
+
+[Install]
+WantedBy=multi-user.target

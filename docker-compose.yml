@@ -1,0 +1,53 @@
+services:
+  miniflux:
+    image: miniflux/miniflux:latest
+    container_name: miniflux
+    ports:
+      - "80:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://miniflux:secret_pass@db/miniflux?sslmode=disable
+      - RUN_MIGRATIONS=1
+      - CREATE_ADMIN=1
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=rahasia30
+      - BASE_URL=http://146.190.86.109
+      - RSS_BRIDGE_URL=http://rss-bridge
+      # === RESOURCE OPTIMIZATION ===
+      - WORKER_POOL_SIZE=2           # Default 16 → 2 (most impactful!)
+      - BATCH_SIZE=10                # Default 100 → 10 feeds per batch
+      - DATABASE_MAX_CONNS=5         # Default 20 → 5
+      - DATABASE_MIN_CONNS=1         # Already default
+      - POLLING_FREQUENCY=120        # Default 60 → 120 minutes between auto-refreshes
+    restart: always
+
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    environment:
+      - POSTGRES_USER=miniflux
+      - POSTGRES_PASSWORD=secret_pass
+      - POSTGRES_DB=miniflux
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U miniflux"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c work_mem=2MB
+      -c maintenance_work_mem=16MB
+      -c max_connections=20
+
+  rss-bridge:
+    image: rssbridge/rss-bridge:latest
+    container_name: rss-bridge
+    restart: always
+    environment:
+      - RSB_WHITELIST_IP=127.0.0.1
