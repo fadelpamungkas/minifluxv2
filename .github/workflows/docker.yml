@@ -23,7 +23,7 @@ jobs:
 
       - name: Generate Alpine Docker tags
         id: docker_alpine_tags
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             docker.io/${{ github.repository_owner }}/miniflux
@@ -36,7 +36,7 @@ jobs:
 
       - name: Generate Distroless Docker tags
         id: docker_distroless_tags
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: |
             docker.io/${{ github.repository_owner }}/miniflux
